@@ -148,7 +148,7 @@ twist_distribution = -50*(r_R) + 35 + pitch # degrees
 # flow conditions
 Uinf = 60                       # unperturbed wind speed in m/s
 J=np.array([1.6, 2.0, 2.4])     # advance ratio
-TSR = 1/(2*J)                   # tip speed ratio
+TSR = 1/(4*np.pi*J)                   # tip speed ratio
 Radius = 0.7                    # blade length in m
 Omega = Uinf*TSR/Radius         # RPS in Hz
 NBlades = 6                     # number of blades
