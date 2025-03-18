@@ -107,7 +107,7 @@ def solveStreamtube(Uinf, r1_R, r2_R, rootradius_R, tipradius_R , Omega, Radius,
         
         # correct new axial induction with Prandtl's correction
         Prandtl, Prandtltip, Prandtlroot = PrandtlTipRootCorrection(r_R, rootradius_R, tipradius_R, Omega*Radius/Uinf, NBlades, anew);
-        if (Prandtl < 0.0001): 
+        if (Prandtl < 0.0001).all(): 
             Prandtl = 0.0001 # avoid divide by zero
         anew = anew/Prandtl # correct estimate of axial induction
         a = 0.75*a+0.25*anew # for improving convergence, weigh current and previous iteration of axial induction
@@ -120,7 +120,7 @@ def solveStreamtube(Uinf, r1_R, r2_R, rootradius_R, tipradius_R , Omega, Radius,
         # ///////////////////////////////////////////////////////////////////////
         
         #// test convergence of solution, by checking convergence of axial induction
-        if (np.abs(a-anew) < Erroriterations): 
+        if (np.abs(a-anew) < Erroriterations).all(): 
             break
 
     return [a , aline, r_R, fnorm , ftan, gamma]
@@ -147,7 +147,8 @@ twist_distribution = -50*(r_R) + 35 + pitch # degrees
 
 # flow conditions
 Uinf = 60                       # unperturbed wind speed in m/s
-J=np.array([1.6, 2.0, 2.4])     # advance ratio
+#J=np.array([1.6, 2.0, 2.4])   
+J = 1.6   # advance ratio
 TSR = 1/(4*np.pi*J)                   # tip speed ratio
 Radius = 0.7                    # blade length in m
 Omega = Uinf*TSR/Radius         # RPS in Hz
