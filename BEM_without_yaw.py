@@ -12,7 +12,7 @@ os.chdir(os.path.dirname(__file__))
 # Prandtl root and tip corrections
 def PrandtlCorrection(r_R, rootradius_R, tipradius_R, TSR, NBlades, axial_induction):
     temp1 = -NBlades/2*(tipradius_R-r_R)/r_R*np.sqrt( 1+ ((TSR*r_R)**2)/((1+axial_induction)**2))
-    Ftip = np.array(2/np.pi*np.arccos(np.exp(temp1)))
+    Ftip = np.array((2/np.pi)*np.arccos(np.exp(temp1)))
     Ftip[np.isnan(Ftip)] = 0
     temp2 = NBlades/2*(rootradius_R-r_R)/r_R*np.sqrt( 1+ ((TSR*r_R)**2)/((1+axial_induction)**2))
     Froot = np.array(2/np.pi*np.arccos(np.exp(temp2)))
@@ -41,7 +41,7 @@ def solveStreamtube(Uinf, r1_R, r2_R, rootradius_R, tipradius_R , Omega, Radius,
     a = 0.3                                          # initial guess
     atan = 0.2                                       # initial guess
     N_iter = 500
-    error = 1e-5
+    error = 1e-7
     for i in range(N_iter):
         # Calculate velocity and loads at the blade element
         U_ax_rotor = Uinf*(1+a)
@@ -60,7 +60,7 @@ def solveStreamtube(Uinf, r1_R, r2_R, rootradius_R, tipradius_R , Omega, Radius,
         anew_ax = anew_ax/Prandtl
         a = a*0.75 + anew_ax*0.25
         atan = ftan*NBlades/(2*np.pi*Uinf*(1+a)*Omega*2*(r_R*Radius)**2)
-        atan =atan/Prandtl
+        # atan =atan/Prandtl
 
         if (np.abs(a-anew_ax) < error): 
             break
@@ -71,7 +71,8 @@ def solveStreamtube(Uinf, r1_R, r2_R, rootradius_R, tipradius_R , Omega, Radius,
 #%%----------------------MAIN-----------------------%%
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+# P = PrandtlCorrection(0.250001, 0.25, 1, 1.4, 6, 0.3)
+# print(P)
 ### import polar data
 airfoil = 'ARAD8pct_polar.csv'
 data1=pd.read_csv(airfoil, header=0, names = ["alfa", "cl", "cd", "cm"],  sep=',')
