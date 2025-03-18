@@ -119,7 +119,60 @@ areas = (r_R[1:]**2-r_R[:-1]**2)*np.pi*Radius**2
 dr = (r_R[1:]-r_R[:-1])*Radius
 CT = np.sum(dr*results[:,3]*NBlades/(0.5*Uinf**2*np.pi*Radius**2))
 CP = np.sum(dr*results[:,4]*results[:,2]*NBlades*Radius*Omega/(0.5*Uinf**3*np.pi*Radius**2))
-
-
 print("CT is ", CT)
 print("CP is ", CP)
+
+# Plotting the Prandtl tip and root correction
+r_R = np.arange(0.1, 1, .01)
+a = np.zeros(np.shape(r_R))+0.3
+Prandtl, Prandtltip, Prandtlroot = PrandtlCorrection(r_R, 0.1, TipLocation_R, TSR, 6, a)
+fig1 = plt.figure(figsize=(12, 6))
+plt.plot(r_R, Prandtl, 'r-', label='Prandtl')
+plt.plot(r_R, Prandtltip, 'g.', label='Prandtl tip')
+plt.plot(r_R, Prandtlroot, 'b.', label='Prandtl root')
+plt.xlabel('r/R')
+plt.legend()
+
+
+# Plotting the polars of the airfoil
+fig2, axs = plt.subplots(1, 2, figsize=(12, 6))
+axs[0].plot(polar_alpha, polar_cl)
+axs[0].set_xlim([-30,30])
+axs[0].set_xlabel(r'$\alpha$')
+axs[0].set_ylabel(r'$C_l$')
+axs[0].grid()
+axs[1].plot(polar_cd, polar_cl)
+axs[1].set_xlim([0,.1])
+axs[1].set_xlabel(r'$C_d$')
+axs[1].grid()
+
+
+# Plotting the axial and tangential inductions
+fig1 = plt.figure(figsize=(12, 6))
+plt.title('Axial and tangential induction')
+plt.plot(results[:,2], results[:,0], 'r-', label=r'$a$')
+plt.plot(results[:,2], results[:,1], 'g--', label=r'$a^,$')
+plt.grid()
+plt.xlabel('r/R')
+plt.legend()
+
+
+# Plotting the normal and tangential forces normalised
+fig1 = plt.figure(figsize=(12, 6))
+plt.title(r'Normal and tagential force, non-dimensioned by $\frac{1}{2} \rho U_\infty^2 R$')
+plt.plot(results[:,2], results[:,3]/(0.5*Uinf**2*Radius), 'r-', label=r'Fnorm')
+plt.plot(results[:,2], results[:,4]/(0.5*Uinf**2*Radius), 'g--', label=r'Ftan')
+plt.grid()
+plt.xlabel('r/R')
+plt.legend()
+
+# Plotting the Circulation
+fig1 = plt.figure(figsize=(12, 6))
+plt.title(r'Circulation distribution, non-dimensioned by $\frac{\pi U_\infty^2}{\Omega * NBlades } $')
+plt.plot(results[:,2], results[:,5]/(np.pi*Uinf**2/(NBlades*Omega)), 'r-', label=r'$\Gamma$')
+plt.grid()
+plt.xlabel('r/R')
+plt.legend()
+plt.show()
+
+
