@@ -28,8 +28,8 @@ def loadBladeElement(vnorm, vtan, r_R, chord, twist, polar_alpha, polar_cl, pola
     cd = np.interp(alpha, polar_alpha, polar_cd)
     lift = 0.5*rho*vmag2*cl*chord
     drag = 0.5*rho*vmag2*cd*chord
-    fax = lift*np.cos(phi)+drag*np.sin(phi)
-    ftan = lift*np.sin(phi)-drag*np.cos(phi)
+    fax = lift*np.cos(phi)-drag*np.sin(phi)  #maybe needs change
+    ftan = lift*np.sin(phi)+drag*np.cos(phi)   
     gamma = 0.5*np.sqrt(vmag2)*cl*chord
 
     return fax, ftan, gamma
@@ -49,15 +49,15 @@ def solveStreamtube(Uinf, r1_R, r2_R, rootradius_R, tipradius_R , Omega, Radius,
         fax, ftan, gamma = loadBladeElement(U_ax_rotor, U_tan_rotor, r_R, chord, twist, polar_alpha, polar_cl, polar_cd, rho)
         load3Daxial =fax*Radius*(r2_R-r1_R)*NBlades # 3D force in axial direction
         load3Dtan =ftan*Radius*(r2_R-r1_R)*NBlades    # 3D force in tangential direction
-        CT = load3Daxial/(0.5 * rho * Uinf**2 * Area )
-        CQ = load3Dtan/(0.5 * rho * Uinf**2 * Area * r_R*Radius)
+        CT = load3Daxial/(0.5*rho  * Uinf**2 * Area )
+        CQ = load3Dtan/(0.5 *rho * Uinf**2 * Area * r_R*Radius)
         anew_ax = 0.5*(-1 + np.sqrt(1 + CT))
         
         # Apply prandtl corrections
-        Prandtl, Prandtltip, Prandtlroot = PrandtlCorrection(r_R, rootradius_R, tipradius_R, Omega*Radius/Uinf, NBlades, anew_ax)
-        if (Prandtl < 0.0001).all(): 
-            Prandtl = 0.0001 
-        anew_ax = anew_ax/Prandtl
+        # Prandtl, Prandtltip, Prandtlroot = PrandtlCorrection(r_R, rootradius_R, tipradius_R, Omega*Radius/Uinf, NBlades, anew_ax)
+        # if (Prandtl < 0.0001).all(): 
+        #     Prandtl = 0.0001 
+        # anew_ax = anew_ax/Prandtl
         a = a*0.75 + anew_ax*0.25
         atan = ftan*NBlades/(2*np.pi*Uinf*(1+a)*Omega*2*(r_R*Radius)**2)
         # atan =atan/Prandtl
@@ -123,9 +123,9 @@ print("CT is ", CT)
 print("CP is ", CP)
 
 # Plotting the Prandtl tip and root correction
-r_R = np.arange(0.1, 1, .01)
+r_R = np.arange(0.25, 1, .01)
 a = np.zeros(np.shape(r_R))+0.3
-Prandtl, Prandtltip, Prandtlroot = PrandtlCorrection(r_R, 0.1, TipLocation_R, TSR, 6, a)
+Prandtl, Prandtltip, Prandtlroot = PrandtlCorrection(r_R, 0.25, TipLocation_R, TSR, 6, a)
 fig1 = plt.figure(figsize=(12, 6))
 plt.plot(r_R, Prandtl, 'r-', label='Prandtl')
 plt.plot(r_R, Prandtltip, 'g.', label='Prandtl tip')
