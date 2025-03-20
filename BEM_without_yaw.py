@@ -39,8 +39,8 @@ def loadBladeElement(vnorm, vtan, r_R, chord, twist, polar_alpha, polar_cl, pola
 def solveStreamtube1(Uinf, r1_R, r2_R, rootradius_R, tipradius_R , Omega, Radius, NBlades, chord, twist, polar_alpha, polar_cl, polar_cd, rho, pitch):
     r_R = (r1_R+r2_R)/2                              # centroid
     Area = 2*np.pi*((Radius**2)*r_R*(r2_R-r1_R))     # streamtube area
-    a = 0.3                                          # initial guess
-    atan = 0.2                                       # initial guess
+    a = 1/3                                          # initial guess
+    atan = 0                                       # initial guess
     N_iter = 500
     error = 1e-7
     for i in range(N_iter):
@@ -74,7 +74,7 @@ def solveStreamtube2(Uinf, r1_R, r2_R, rootradius_R, tipradius_R , Omega, Radius
     dr = (r2_R-r1_R)*Radius
     Area = 2*np.pi*(Radius*r*(r2_R-r1_R))            # streamtube area
     a = a_new = 0.3                                          # initial guess
-    atan = atan_new = 0.2                                       # initial guess
+    atan = atan_new = 0                                       # initial guess
     N_iter = 500
     error = 1e-7
     
@@ -126,7 +126,7 @@ polar_cl = data1['cl'][:]
 polar_cd = data1['cd'][:]
 
 ### Discretisation of blade geometry
-delta_r_R = 0.01
+delta_r_R = 0.005
 r_R = np.arange(0.25, 1, delta_r_R)
 
 ### Blade geometry
@@ -145,7 +145,7 @@ RootLocation_R = 0.25
 
 n = Uinf / (2*J*Radius)
 Omega = 2*np.pi*n
-TSR = 1/J
+TSR = np.pi/J
 
 # Solving the BEM model
 results =np.zeros([len(r_R)-1,6]) 
@@ -154,7 +154,7 @@ for i in range(len(r_R)-1):
     chord = np.interp((r_R[i]+r_R[i+1])/2, r_R, chord_distribution)
     twist = np.interp((r_R[i]+r_R[i+1])/2, r_R, twist_distribution)
     
-    results[i,:] = solveStreamtube2(Uinf, r_R[i], r_R[i+1], RootLocation_R, TipLocation_R , Omega, Radius, NBlades, chord, twist, polar_alpha, polar_cl, polar_cd, rho, pitch)
+    results[i,:] = solveStreamtube1(Uinf, r_R[i], r_R[i+1], RootLocation_R, TipLocation_R , Omega, Radius, NBlades, chord, twist, polar_alpha, polar_cl, polar_cd, rho, pitch)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
