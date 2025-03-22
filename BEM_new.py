@@ -1,6 +1,6 @@
 '''
 TO DO:
-1. How to calculate power coefficient
+1. How to calculate power coefficient   [check if it is correct]
 2. Figure out yawed case
 3. How to do energy harvesting and optimisation
 4. Finish Plotting Routines
@@ -45,9 +45,11 @@ def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, dr, Omega, Nb, a, b,
             C_tan = Cl*np.sin(phi) + Cd*np.cos(phi)     # tangential force coefficient
             # gamma = 0.5*V_loc*Cl[j][i]*chord
 
+            # sigma = (Nb*chord)/(2*np.pi*r)            # solidity
+
             dCT = ((0.5*rho*V_loc**2)*chord*C_ax*Nb*dr)/(rho*(n**2)*(2*R)**4)       # blade element thrust coefficient
             dCQ = ((0.5*rho*V_loc**2)*chord*C_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)    # blade element torque coefficient
-
+            
             a_new, b_new, F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R, dCT, dCQ)
 
             if(np.abs(a-a_new)<tol) and (np.abs(b-b_new)<tol):
@@ -97,9 +99,9 @@ TSR = np.pi/J       # tip speed ratio
 tol = 1e-6  # convergence tolerance
 
 # Variable initialisation
-CT, CQ = [np.zeros(len(J)) for i in range(2)]
+CT, CP, CQ = [np.zeros(len(J)) for i in range(3)]
 a = np.ones((len(J),len(r_R)-1))*(1/3)
-b, Cl, Cd, alfa, phi, F_tot, F_tip, F_root = [np.zeros((len(J),len(r_R)-1)) for i in range(8)]
+b, Cl, Cd, dCT, dCQ, dCP, alfa, phi, F_tot, F_tip, F_root = [np.zeros((len(J),len(r_R)-1)) for i in range(11)]
 
 # Solving BEM model
 for j in range(len(J)):
@@ -110,33 +112,86 @@ for j in range(len(J)):
         r = (r_R[i+1]+r_R[i])*(R/2)     # radial distance of the blade element
         dr = (r_R[i+1]-r_R[i])*R        # length of the blade element
         
-        a[j][i], b[j][i], Cl[j][i], Cd[j][i], alfa[j][i], phi[j][i], F_tot[j][i], F_tip[j][i], F_root[j][i], dCT, dCQ = BladeElementMethod(Vinf, TSR[j], n[j], rho, R, r, root_pos_R, dr, Omega[j], Nb, a[j][i], b[j][i], twist, chord, polar_alfa, polar_cl, polar_cd, tol)
+        a[j][i], b[j][i], Cl[j][i], Cd[j][i], alfa[j][i], phi[j][i], F_tot[j][i], F_tip[j][i], F_root[j][i], dCT[j][i], dCQ[j][i] = BladeElementMethod(Vinf, TSR[j], n[j], rho, R, r, root_pos_R, dr, Omega[j], Nb, a[j][i], b[j][i], twist, chord, polar_alfa, polar_cl, polar_cd, tol)
+        dCP[j][i] = dCT[j][i]*(1+a[j][i])
 
-        CT[j] += dCT    # thrust coefficient for given J
-        CQ[j] += dCQ    # torque coefficient for given J
+        CT[j] += dCT[j][i]    # thrust coefficient for given J
+        CP[j] += dCP[j][i]    # power coefficient for given J
+        CQ[j] += dCQ[j][i]    # torque coefficient for given J
 
 #------------------------------- RESULTS --------------------------------
 
 print("CT: ", CT)
+print("CP: ", CP)
 print("CQ: ", CQ)
 
 # Plotting Routines
 
-plt.figure(1)
-plt.plot(r_R[1:],a[0][:], label="a")
-plt.plot(r_R[1:],b[0][:], label="a'")
+for i in range(len(J)):
+    plt.figure("Local Angle of Attack vs Blade Location", figsize = (8,4.5))
+    plt.plot(r_R[1:],alfa[i][:], label= "J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Alpha [deg]")
+    plt.grid(True)
+    plt.legend()
+    
+    plt.figure("Inflow vs Blade Location", figsize = (8,4.5))
+    plt.plot(r_R[1:],np.rad2deg(phi[i][:]), label= "J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Inflow Angle [deg]")
+    plt.grid(True)
+    plt.legend()
+
+    plt.figure("Axial Induction vs Blade Location", figsize = (8,4.5))
+    plt.plot(r_R[1:],a[i][:], label= "J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Axial Induction Factor, a")
+    plt.grid(True)
+    plt.legend()
+
+    plt.figure("Tangential Induction vs Blade Location", figsize = (8,4.5))
+    plt.plot(r_R[1:],b[i][:], label="J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Tangential Induction Factor, a'")
+    plt.grid(True)
+    plt.legend()
+
+    plt.figure("Thrust Coefficient vs Blade Location", figsize = (8,4.5))
+    plt.plot(r_R[1:],dCT[i][:], label="J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Blade Element Thrust Coefficient, CT")
+    plt.grid(True)
+    plt.legend()
+    
+    plt.figure("Power Coefficient vs Blade Location", figsize = (8,4.5))
+    plt.plot(r_R[1:],dCP[i][:], label="J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Blade Element Power Coefficient, CP")
+    plt.grid(True)
+    plt.legend()
+
+    plt.figure("Torque Coefficient vs Blade Location", figsize = (8,4.5))
+    plt.plot(r_R[1:],dCQ[i][:], label="J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Blade Element Torque Coefficient, CQ")
+    plt.grid(True)
+    plt.legend()
+
+plt.figure("Thrust and Torque vs Advance Ratio", figsize = (8,4.5))
+plt.plot(J,((rho*(n**2)*(2*R)**4)*CT), '-o', label="Thrust",)
+plt.plot(J,((rho*(n**2)*(2*R)**5)*CQ), '-o', label="Torque")
+plt.xlabel("Normalised radius, r/R")
+plt.ylabel("Forces")
+plt.grid(True)
 plt.legend()
 
-plt.figure(2)
-plt.plot(r_R[1:],alfa[0][:], label="alfa")
-plt.plot(r_R[1:],np.rad2deg(phi[0][:]), label="phi")
-plt.legend()
-
-
-plt.figure(3)
-plt.plot(r_R[1:],F_tip[0][:], label="F_tip")
-plt.plot(r_R[1:],F_root[0][:], label="F_root")
-plt.plot(r_R[1:],F_tot[0][:], label="F_tot")
+plt.figure("Prandtl Corrections", figsize = (8,4.5))
+plt.plot(r_R[1:],F_tip[i][:], label="F_tip")
+plt.plot(r_R[1:],F_root[i][:], label="F_root")
+plt.plot(r_R[1:],F_tot[i][:], label="F_tot")
+plt.xlabel("Normalised radius, r/R")
+plt.ylabel("Prandtl Correction Factor")
+plt.grid(True)
 plt.legend()
 
 plt.show()
