@@ -75,8 +75,8 @@ def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, dr, Omega, Nb, a, b,
                 break
             else:
                 # introduces relaxation to induction factors a and a' for easier convergence
-                a = 0.75*a + 0.25*a_new
-                b = 0.75*b + 0.25*b_new
+                a = a_new
+                b = b_new
                 flag += 1
                 continue
     return a_b4_Pr, a, b, Cl, Cd, F_tan, alfa, phi, F_tot, F_tip, F_root, dCT, dCQ, dCP
@@ -114,7 +114,7 @@ Omega = 2*np.pi*n   # Angular velocity [rad/s]
 TSR = np.pi/J       # tip speed ratio
 
 # Iteration inputs
-tol = 1e-6  # convergence tolerance
+tol = 1e-7  # convergence tolerance
 
 # Variable initialisation
 CT, CP, CQ = [np.zeros(len(J)) for i in range(3)]
