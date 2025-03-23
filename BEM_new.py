@@ -1,8 +1,6 @@
 '''
 TO DO:
 1. How to calculate power coefficient   [check if it is correct]
-2. Figure out yawed case
-3. How to do energy harvesting and optimisation
 4. Finish Plotting Routines
 '''
 
@@ -14,7 +12,7 @@ import os
 os.chdir(os.path.dirname(__file__))
 
 #------------------------- FUNCTION DEFINITIONS -------------------------
-def PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R, dCT, dCQ):
+def PrandtlCorrections(Nb, r, R, TSR, a, b, root_pos_R, dCT, dCQ):
     F_tip = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((1-(r/R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1+a)**2))))))
     F_root = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((r/R)-(root_pos_R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1+a)**2)))))  
     F_tot = F_tip*F_root
@@ -26,11 +24,14 @@ def PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R, dCT, dCQ):
 
     a_new = (1/2)*(1-np.sqrt(1-(dCT/F_tot)))    # axial induction factor, a
     b_new = (dCQ)/(4*F_tot*(1+a)*(TSR*(r/R)))   # tangential induction factor, a'
+    # a_new = a/F_tot
+    # b_new = b/F_tot
 
     return a_new, b_new, F_tot, F_tip, F_root
 
 def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, dr, Omega, Nb, a, b, twist, chord, polar_alfa, polar_cl, polar_cd, tol):
-    while True:
+    flag = 0
+    while True and (flag<1000):
             V_ax = Vinf*(1+a)       # axial velocity at the propeller blade
             V_tan = Omega*r*(1-b)   # tangential veloity at the propeller blade
             V_loc = np.sqrt(V_ax**2 + V_tan**2)
@@ -41,27 +42,44 @@ def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, dr, Omega, Nb, a, b,
             Cl = np.interp(alfa, polar_alfa, polar_cl)
             Cd = np.interp(alfa, polar_alfa, polar_cd)
             
-            C_ax = Cl*np.cos(phi) - Cd*np.sin(phi)      # axial force coefficient  
+            C_ax = Cl*np.cos(phi) - Cd*np.sin(phi)      # axial force coefficient
+            F_ax = (0.5*rho*V_loc**2)*C_ax*chord
+
             C_tan = Cl*np.sin(phi) + Cd*np.cos(phi)     # tangential force coefficient
+            F_tan = (0.5*rho*V_loc**2)*C_tan*chord
             # gamma = 0.5*V_loc*Cl[j][i]*chord
 
             # sigma = (Nb*chord)/(2*np.pi*r)            # solidity
 
             dCT = ((0.5*rho*V_loc**2)*chord*C_ax*Nb*dr)/(rho*(n**2)*(2*R)**4)       # blade element thrust coefficient
+            dCP = (dr*F_tan*(r/R)*Nb*R*Omega)/(0.5*Vinf**3*np.pi*R**2)              # blade element power coefficient
             dCQ = ((0.5*rho*V_loc**2)*chord*C_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)    # blade element torque coefficient
+            # dCT = (F_ax*Nb*dr)/(0.5*rho*Vinf**2*2*np.pi*r*dr)
+            # dCQ = (r*F_tan)/(0.5*rho*Vinf**2*R*2*np.pi*r*dr)
+            # dCQ = F_tan*r*dr*Nb
+            # dCP = dCQ*TSR
+
+            if (flag==1):
+                a_b4_Pr = a
             
-            a_new, b_new, F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R, dCT, dCQ)
+            # a_new = (1/2)*(-1+np.sqrt(1+dCT))
+            # b_new = (F_tan*Nb)/(2*rho*(2*np.pi*r)*Vinf**2*(1+a_new)*TSR*(r/R))
+
+            # a_new, b_new, F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a_new, b_new, root_pos_R, dCT, dCQ)
+            a_new, b_new, F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a, b, root_pos_R, dCT, dCQ)
 
             if(np.abs(a-a_new)<tol) and (np.abs(b-b_new)<tol):
                 a = a_new
                 b = b_new
+                flag += 1
                 break
             else:
                 # introduces relaxation to induction factors a and a' for easier convergence
                 a = 0.75*a + 0.25*a_new
                 b = 0.75*b + 0.25*b_new
+                flag += 1
                 continue
-    return a, b, Cl, Cd, alfa, phi, F_tot, F_tip, F_root, dCT, dCQ
+    return a_b4_Pr, a, b, Cl, Cd, F_tan, alfa, phi, F_tot, F_tip, F_root, dCT, dCQ, dCP
 
 #--------------------------------- MAIN ---------------------------------
 
@@ -100,8 +118,8 @@ tol = 1e-6  # convergence tolerance
 
 # Variable initialisation
 CT, CP, CQ = [np.zeros(len(J)) for i in range(3)]
-a = np.ones((len(J),len(r_R)-1))*(1/3)
-b, Cl, Cd, dCT, dCQ, dCP, alfa, phi, F_tot, F_tip, F_root = [np.zeros((len(J),len(r_R)-1)) for i in range(11)]
+a_b4_Pr, a = [(np.ones((len(J),len(r_R)-1))*(1/3)) for i in range(2)]
+b, Cl, Cd, F_tan, dCT, dCQ, dCP, alfa, phi, F_tot, F_tip, F_root = [np.zeros((len(J),len(r_R)-1)) for i in range(12)]
 
 # Solving BEM model
 for j in range(len(J)):
@@ -112,8 +130,7 @@ for j in range(len(J)):
         r = (r_R[i+1]+r_R[i])*(R/2)     # radial distance of the blade element
         dr = (r_R[i+1]-r_R[i])*R        # length of the blade element
         
-        a[j][i], b[j][i], Cl[j][i], Cd[j][i], alfa[j][i], phi[j][i], F_tot[j][i], F_tip[j][i], F_root[j][i], dCT[j][i], dCQ[j][i] = BladeElementMethod(Vinf, TSR[j], n[j], rho, R, r, root_pos_R, dr, Omega[j], Nb, a[j][i], b[j][i], twist, chord, polar_alfa, polar_cl, polar_cd, tol)
-        dCP[j][i] = dCT[j][i]*(1+a[j][i])
+        a_b4_Pr[j][i], a[j][i], b[j][i], Cl[j][i], Cd[j][i], F_tan[j][i], alfa[j][i], phi[j][i], F_tot[j][i], F_tip[j][i], F_root[j][i], dCT[j][i], dCQ[j][i], dCP[j][i] = BladeElementMethod(Vinf, TSR[j], n[j], rho, R, r, root_pos_R, dr, Omega[j], Nb, a[j][i], b[j][i], twist, chord, polar_alfa, polar_cl, polar_cd, tol)
 
         CT[j] += dCT[j][i]    # thrust coefficient for given J
         CP[j] += dCP[j][i]    # power coefficient for given J
@@ -149,6 +166,13 @@ for i in range(len(J)):
     plt.grid(True)
     plt.legend()
 
+    plt.figure("Axial Induction before Correction vs Blade Location", figsize = (8,4.5))
+    plt.plot(r_R[1:],a_b4_Pr[i][:], label= "J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Axial Induction Factor, a")
+    plt.grid(True)
+    plt.legend()
+
     plt.figure("Tangential Induction vs Blade Location", figsize = (8,4.5))
     plt.plot(r_R[1:],b[i][:], label="J = " + str(J[i]))
     plt.xlabel("Normalised radius, r/R")
@@ -160,6 +184,13 @@ for i in range(len(J)):
     plt.plot(r_R[1:],dCT[i][:], label="J = " + str(J[i]))
     plt.xlabel("Normalised radius, r/R")
     plt.ylabel("Blade Element Thrust Coefficient, CT")
+    plt.grid(True)
+    plt.legend()
+    
+    plt.figure("Azimuthal Loading vs Blade Location", figsize = (8,4.5))
+    plt.plot(r_R[1:],F_tan[i][:], label="J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Azimuthal Loading, F_tan")
     plt.grid(True)
     plt.legend()
     
