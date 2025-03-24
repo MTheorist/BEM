@@ -1,9 +1,3 @@
-'''
-TO DO:
-1. How to calculate power coefficient   [check if it is correct]
-4. Finish Plotting Routines
-'''
-
 import matplotlib.pyplot as plt
 import numpy as np  
 import pandas as pd
@@ -13,24 +7,23 @@ os.chdir(os.path.dirname(__file__))
 
 #------------------------- FUNCTION DEFINITIONS -------------------------
 def PrandtlCorrections(Nb, r, R, TSR, a, b, root_pos_R, dCT, dCQ):
-    F_tip = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((1-(r/R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1+a)**2))))))
-    F_root = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((r/R)-(root_pos_R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1+a)**2)))))  
+    F_tip = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((1-(r/R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1-a)**2))))))
+    F_root = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((r/R)-(root_pos_R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1-a)**2)))))  
     F_tot = F_tip*F_root
     
     if(F_tot == 0) or (F_tot is np.nan) or (F_tot is np.inf):
         # handle exceptional cases for 0/NaN/inf value of F_tot
         # print("F total is 0/NaN/inf.")
         F_tot = 0.00001
-
-    a_new = (1/2)*(1-np.sqrt(1-(dCT/F_tot)))    # axial induction factor, a
-    b_new = (dCQ)/(4*F_tot*(1+a)*(TSR*(r/R)))   # tangential induction factor, a'
-    # a_new = a/F_tot
-    # b_new = b/F_tot
+    
+    a_new = a/F_tot
+    b_new = b/F_tot
 
     return a_new, b_new, F_tot, F_tip, F_root
 
 def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, dr, Omega, Nb, a, b, twist, chord, polar_alfa, polar_cl, polar_cd, tol):
     flag = 0
+    a_b4_Pr = 0
     while True and (flag<1000):
             V_ax = Vinf*(1+a)       # axial velocity at the propeller blade
             V_tan = Omega*r*(1-b)   # tangential veloity at the propeller blade
@@ -43,29 +36,31 @@ def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, dr, Omega, Nb, a, b,
             Cd = np.interp(alfa, polar_alfa, polar_cd)
             
             C_ax = Cl*np.cos(phi) - Cd*np.sin(phi)      # axial force coefficient
-            F_ax = (0.5*rho*V_loc**2)*C_ax*chord
+            F_ax = (0.5*rho*V_loc**2)*C_ax*chord*Nb
 
             C_tan = Cl*np.sin(phi) + Cd*np.cos(phi)     # tangential force coefficient
-            F_tan = (0.5*rho*V_loc**2)*C_tan*chord
-            # gamma = 0.5*V_loc*Cl[j][i]*chord
+            F_tan = (0.5*rho*V_loc**2)*C_tan*chord*Nb*r
 
+            # gamma = 0.5*V_loc*Cl[j][i]*chord
             # sigma = (Nb*chord)/(2*np.pi*r)            # solidity
 
-            dCT = ((0.5*rho*V_loc**2)*chord*C_ax*Nb*dr)/(rho*(n**2)*(2*R)**4)       # blade element thrust coefficient
-            dCP = (dr*F_tan*(r/R)*Nb*R*Omega)/(0.5*Vinf**3*np.pi*R**2)              # blade element power coefficient
-            dCQ = ((0.5*rho*V_loc**2)*chord*C_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)    # blade element torque coefficient
-            # dCT = (F_ax*Nb*dr)/(0.5*rho*Vinf**2*2*np.pi*r*dr)
-            # dCQ = (r*F_tan)/(0.5*rho*Vinf**2*R*2*np.pi*r*dr)
+            # dCT = ((0.5*rho*V_loc**2)*chord*C_ax*Nb*dr)/(rho*(n**2)*(2*R)**4)       # blade element thrust coefficient
+            dCT = F_ax/(rho*(n**2)*(2*R)**4)
+            # dCT = (F_ax)/(0.5*rho*(Vinf**2)*2*np.pi*r*dr)
+            # dCQ = ((0.5*rho*V_loc**2)*chord*C_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)    # blade element torque coefficient
+            # dCQ = (r*F_tan)/(0.5*rho*(Vinf**2)*r*2*np.pi*r*dr)
             # dCQ = F_tan*r*dr*Nb
-            # dCP = dCQ*TSR
+            dCQ = F_tan/((rho*(n**2)*(2*R)**5))
+            # dCP = (dr*F_tan*(r/R)*Nb*R*Omega)/(0.5*(Vinf**3)*np.pi*R**2)            # blade element power coefficient
+            dCP = dCT*(1+a)
+
+            a = (1/2)*(-1+np.sqrt(1+(dCT)))    # axial induction factor, a
+            # b = (dCQ)/(4*(1+a)*(TSR*(r/R)))   # tangential induction factor, a'
+            b = (F_tan*Nb)/(2*rho*(2*np.pi*r)*(Vinf**2)*(1+a)*TSR*(r/R))
 
             if (flag==1):
                 a_b4_Pr = a
-            
-            # a_new = (1/2)*(-1+np.sqrt(1+dCT))
-            # b_new = (F_tan*Nb)/(2*rho*(2*np.pi*r)*Vinf**2*(1+a_new)*TSR*(r/R))
 
-            # a_new, b_new, F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a_new, b_new, root_pos_R, dCT, dCQ)
             a_new, b_new, F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a, b, root_pos_R, dCT, dCQ)
 
             if(np.abs(a-a_new)<tol) and (np.abs(b-b_new)<tol):
@@ -105,7 +100,7 @@ pitch = 46                          # blade pitch [deg]
 # Discretisation into blade elements
 nodes = 100
 r_R = np.linspace(root_pos_R, tip_pos_R, nodes)
-chord_dist = 0.18 - 0.06*(r_R)                  # chord distribution [m]
+chord_dist = 0.18 - 0.06*(r_R)                  # chord distribution 
 twist_dist = -50*(r_R) + 35 + pitch             # twist distribution [deg]
 
 # Dependent variables 
@@ -124,7 +119,7 @@ b, Cl, Cd, F_tan, dCT, dCQ, dCP, alfa, phi, F_tot, F_tip, F_root = [np.zeros((le
 # Solving BEM model
 for j in range(len(J)):
     for i in range(len(r_R)-1):    
-        chord = np.interp((r_R[i]+r_R[i+1])/2, r_R, chord_dist)
+        chord = np.interp((r_R[i]+r_R[i+1])/2, r_R, chord_dist) * R # chord length of the blade element [m]
         twist = np.interp((r_R[i]+r_R[i+1])/2, r_R, twist_dist)
         
         r = (r_R[i+1]+r_R[i])*(R/2)     # radial distance of the blade element
@@ -163,6 +158,13 @@ for i in range(len(J)):
     plt.plot(r_R[1:],a[i][:], label= "J = " + str(J[i]))
     plt.xlabel("Normalised radius, r/R")
     plt.ylabel("Axial Induction Factor, a")
+    plt.grid(True)
+    plt.legend()
+
+    plt.figure("CT vs Axial Induction", figsize = (8,4.5))
+    plt.plot(a[i][:], dCT[i][:], label= "J = " + str(J[i]))
+    plt.xlabel("Axial Induction Factor, a")
+    plt.ylabel("Blade Element Thrust Coefficient, CT")
     plt.grid(True)
     plt.legend()
 
