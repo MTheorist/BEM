@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np  
 import pandas as pd
 import os
@@ -261,5 +262,37 @@ plt.xlabel("Normalised radius, r/R")
 plt.ylabel("Prandtl Correction Factor")
 plt.grid(True)
 plt.legend()
+
+plt.close('all')
+
+# Create 3D figure
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(111, projection='3d')
+
+# Convert r_R to actual blade length
+r_values = r_R * R  # Convert normalized radius to meters
+chord_values = chord_dist * R  # Scale chord to actual size
+twist_values = np.radians(twist_dist)  # Convert degrees to radians for rotation
+
+# Create mesh grid for chord-wise variation
+num_chord_points = nodes  # Number of points along chord
+chord_grid = np.linspace(0, 1, num_chord_points)  # Chord runs from -0.5 to 0.5
+r_mesh, chord_mesh = np.meshgrid(r_values, chord_grid)
+
+# Compute 3D coordinates of the blade shape
+X = r_mesh
+Y = (chord_mesh.T * chord_values).T * np.cos(twist_values)  # Apply twist rotation
+Z = (chord_mesh.T * chord_values).T * np.sin(twist_values)  # Height due to twist
+
+# Plot the surface
+ax.plot_surface(X, Y, Z, color='lightblue', alpha=1)
+
+# Labels and view adjustments
+ax.set_xlabel("Spanwise Position (r) [m]")
+ax.set_ylabel("Chordwise Direction [m]")
+ax.set_zlabel("Twist Effect [m]")
+ax.set_title("3D Blade Geometry")
+
+ax.view_init(elev=20, azim=45)  # Adjust viewing angle
 
 plt.show()
