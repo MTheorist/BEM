@@ -44,8 +44,8 @@ def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, tip_pos_R, dr, Omega
             
             a_new = ((1/2)*(-1+np.sqrt(1+(F_ax * Nb / (rho * Vinf**2 * np.pi * r)))))
             b_new = F_tan * Nb / (2*rho*(2*np.pi*r)*Vinf*(1+a_new)*Omega*r)
-            if (flag==0):
-                a_b4_Pr = a_new
+            #if (flag==0):
+            a_b4_Pr = a_new
             
             F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R, tip_pos_R)
             a_new = a_new/F_tot
@@ -263,7 +263,7 @@ plt.ylabel("Prandtl Correction Factor")
 plt.grid(True)
 plt.legend()
 
-plt.close('all')
+# plt.close('all')
 
 # Create 3D figure
 fig = plt.figure(figsize=(10, 6))
@@ -294,7 +294,5 @@ ax.set_zlabel("Twist Effect [m]")
 ax.set_title("3D Blade Geometry")
 
 ax.view_init(elev=20, azim=45)  # Adjust viewing angle
-
-print(chord_values)
 
 plt.show()
