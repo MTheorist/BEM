@@ -247,7 +247,7 @@ for i in range(len(J)):
 plt.figure("Thrust and Torque vs Advance Ratio", figsize = (8,4.5))
 plt.plot(J,((rho*(n**2)*(2*R)**4)*CT), '-o', label="Thrust",)
 plt.plot(J,((rho*(n**2)*(2*R)**5)*CQ), '-o', label="Torque")
-plt.xlabel("Normalised radius, r/R")
+plt.xlabel("Advance Ratio, J")
 plt.ylabel("Forces")
 plt.grid(True)
 plt.legend()
