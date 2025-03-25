@@ -225,8 +225,8 @@ for i in range(len(J)):
     plt.legend()
 
     plt.figure("Cl vs Chord", figsize = fs)
-    plt.plot(chord[i][:], Cl[i][:], label="J = " + str(J[i]))
-    plt.xlabel("Chord")
+    plt.plot(r_R[1:], (Cl[i][:])/(np.max(Cl[i])), label="J = " + str(J[i]))
+    plt.xlabel("Normalised, Radius, r/R")
     plt.ylabel("Blade Element Lift Coefficient")
     plt.grid(True)
     plt.legend()
@@ -245,6 +245,12 @@ for i in range(len(J)):
     plt.grid(True)
     plt.legend()
 
+plt.figure("LD vs alfa of airfoil", figsize = fs)
+plt.plot(polar_alfa,(polar_cl/polar_cd), label="L/D")
+plt.plot(polar_alfa[np.argmax(polar_cl/polar_cd)],np.max(polar_cl/polar_cd), 'o')
+plt.xlabel("Angle of Attack, [deg]")
+plt.ylabel("L/D")
+plt.grid(True)
 
 plt.figure("Thrust and Torque vs Advance Ratio", figsize = fs)
 plt.plot(J,((rho*(n**2)*(2*R)**4)*CT), '-o', label="Thrust",)
@@ -270,12 +276,12 @@ fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(111, projection='3d')
 
 # Convert r_R to actual blade length
-r_values = r_R * R  # Convert normalized radius to meters
-chord_values = chord_dist * R  # Scale chord to actual size
-twist_values = np.radians(twist_dist)  # Convert degrees to radians for rotation
+r_values = r_R * R                      # Convert normalized radius to meters
+chord_values = chord_dist * R           # Scale chord to actual size
+twist_values = np.radians(twist_dist)   # Convert degrees to radians for rotation
 
 # Create mesh grid for chord-wise variation
-num_chord_points = nodes  # Number of points along chord
+num_chord_points = nodes                          # Number of points along chord
 chord_grid = np.linspace(0, 1, num_chord_points)  # Chord runs from -0.5 to 0.5
 r_mesh, chord_mesh = np.meshgrid(r_values, chord_grid)
 
