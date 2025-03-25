@@ -39,7 +39,7 @@ def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, tip_pos_R, dr, Omega
            
             dCT = (F_ax*Nb*dr)/(rho*(n**2)*(2*R)**4)        # blade element thrust coefficient                   
             dCQ = (F_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)     # blade element torque coefficient
-            dCP = (F_ax*Nb*dr*Vinf)/(rho*(n**3)*(2*R)**5)  # blade element power coefficient
+            dCP = (F_ax*Nb*dr*Vinf)/(rho*(n**3)*(2*R)**5)   # blade element power coefficient
             
             a_new = ((1/2)*(-1+np.sqrt(1+(F_ax * Nb / (rho * Vinf**2 * np.pi * r)))))
             b_new = F_tan * Nb / (2*rho*(2*np.pi*r)*Vinf*(1+a_new)*Omega*r)
