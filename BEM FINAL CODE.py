@@ -295,4 +295,6 @@ ax.set_title("3D Blade Geometry")
 
 ax.view_init(elev=20, azim=45)  # Adjust viewing angle
 
+print(chord_values)
+
 plt.show()
