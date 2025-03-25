@@ -1,9 +1,3 @@
-'''
-TO DO:
-1. How to calculate power coefficient   [check if it is correct]
-4. Finish Plotting Routines
-'''
-
 import matplotlib.pyplot as plt
 import numpy as np  
 import pandas as pd
@@ -12,7 +6,7 @@ import os
 os.chdir(os.path.dirname(__file__))
 
 #------------------------- FUNCTION DEFINITIONS -------------------------
-def PrandtlCorrections(Nb, r, R, TSR, a, b, root_pos_R, dCT, dCQ):
+def PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R):
     F_tip = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((1-(r/R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1+a)**2))))))
     F_root = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((r/R)-(root_pos_R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1+a)**2)))))  
     F_tot = F_tip*F_root
@@ -21,11 +15,6 @@ def PrandtlCorrections(Nb, r, R, TSR, a, b, root_pos_R, dCT, dCQ):
         # handle exceptional cases for 0/NaN/inf value of F_tot
         # print("F total is 0/NaN/inf.")
         F_tot = 0.00001
-
-    # a_new = ((1/2)*(-1+np.sqrt(1+(dCT))))    # axial induction factor, a
-    # b_new = (dCQ)/(4*F_tot*(1+a)*(TSR*(r/R)))   # tangential induction factor, a'
-    # a_new = a/F_tot
-    # b_new = b/F_tot
 
     return F_tot, F_tip, F_root
 
@@ -43,38 +32,22 @@ def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, dr, Omega, Nb, a, b,
             Cd = np.interp(alfa, polar_alfa, polar_cd)
             
             C_ax = Cl*np.cos(phi) - Cd*np.sin(phi)      # axial force coefficient
-            F_ax = (0.5*rho*V_loc**2)*C_ax*chord
+            F_ax = (0.5*rho*V_loc**2)*C_ax*chord        # axial force [N/m]
 
             C_tan = Cl*np.sin(phi) + Cd*np.cos(phi)     # tangential force coefficient
-            F_tan = (0.5*rho*V_loc**2)*C_tan*chord
-            # gamma = 0.5*V_loc*Cl[j][i]*chord
-
-            # sigma = (Nb*chord)/(2*np.pi*r)            # solidity
-
-            # dCT = ((0.5*rho*V_loc**2)*chord*C_ax*Nb*dr)/(rho*(n**2)*(2*R)**4)
-            # dCT = ((0.5*rho*V_loc**2)*chord*C_ax*Nb*dr)/(0.5*rho*(Vinf**2)*2*np.pi*r*dr)       # blade element thrust coefficient
-            # dCP = (dr*F_tan*(r/R)*Nb*R*Omega)/(0.5*Vinf**3*np.pi*R**2)              # blade element power coefficient
-            # dCQ = ((0.5*rho*V_loc**2)*chord*C_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)    # blade element torque coefficient
-            # dCT = (F_ax*Nb*dr)/(0.5*rho*Vinf**2*2*np.pi*r*dr)
-            # dCQ = (r*F_tan)/(0.5*rho*Vinf**2*R*2*np.pi*r*dr)
-            # dCQ = F_tan*r*dr*Nb
-            # dCP = dCQ*TSR
-            dCT = F_ax * Nb * dr/(rho*(n**2)*(2*R)**4)
-            dCT1 = F_ax * Nb / (rho * Vinf**2 * np.pi * r)
-            dCQ = ((0.5*rho*V_loc**2)*chord*C_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)
-            dCP = dCQ*TSR
+            F_tan = (0.5*rho*V_loc**2)*C_tan*chord      # tangential force [N/m]
+           
+            dCT = F_ax * Nb * dr/(rho*(n**2)*(2*R)**4)                              # blade element thrust coefficient                   
+            dCQ = ((0.5*rho*V_loc**2)*chord*C_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)    # blade element torque coefficient
+            dCP = dCQ*TSR                                                           # blade element power coefficient
 
             
-            a_new = ((1/2)*(-1+np.sqrt(1+(dCT1))))
+            a_new = ((1/2)*(-1+np.sqrt(1+(F_ax * Nb / (rho * Vinf**2 * np.pi * r)))))
             b_new = F_tan * Nb / (2*rho*(2*np.pi*r)*Vinf*(1+a_new)*Omega*r)
             if (flag==0):
                 a_b4_Pr = a_new
             
-            # a_new = (1/2)*(-1+np.sqrt(1+dCT))
-            # b_new = (F_tan*Nb)/(2*rho*(2*np.pi*r)*Vinf**2*(1+a_new)*TSR*(r/R))
-
-            # a_new, b_new, F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a_new, b_new, root_pos_R, dCT, dCQ)
-            F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a, b, root_pos_R, dCT, dCQ)
+            F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R)
             a_new = a_new/F_tot
             b_new=b_new/F_tot
         
@@ -105,7 +78,7 @@ polar_cd = data1['cd'][:]
 Vinf = 60                       # freestream velocity [m/s]
 J = np.array([1.6, 2.0, 2.4])   # advance ratio
 rho = 1.007                     # density at h=2000m [kg/m^3]
-
+Pamb = 79495.22                 # static pressure at h=2000m [Pa]
 # Blade geometry
 R = 0.7                             # Blade radius [m]
 Nb = 6                              # number of blades
@@ -125,17 +98,14 @@ Omega = 2*np.pi*n   # Angular velocity [rad/s]
 TSR = np.pi/J       # tip speed ratio
 
 # Iteration inputs
-tol = 1e-6  # convergence tolerance
+tol = 1e-7  # convergence tolerance
 
 # Variable initialisation
 CT, CP, CQ = [np.zeros(len(J)) for i in range(3)]
 a_b4_Pr, a = [(np.ones((len(J),len(r_R)-1))*(1/3)) for i in range(2)]
 chord, b, Cl, Cd, F_ax, F_tan, dCT, dCQ, dCP, alfa, phi, F_tot, F_tip, F_root, P0_down = [np.zeros((len(J),len(r_R)-1)) for i in range(15)]
 
-# Pressure just Upwind and infinity upwind
-Pamb = 79495.22 #Pa
-P_up = np.ones((len(J),len(r_R)-1))*(Pamb + 0.5*rho*(Vinf**2))  #[Pa]
-
+P_up = np.ones((len(J),len(r_R)-1))*(Pamb + 0.5*rho*(Vinf**2))  # pressure upwind of rotor [Pa]
 
 # Solving BEM model
 for j in range(len(J)):
@@ -231,21 +201,21 @@ for i in range(len(J)):
     plt.grid(True)
     plt.legend()
 
-    plt.figure("Stagnation Pressure at Rotor (Downwind)", figsize=(8,4.5))
+    plt.figure("Stagnation Pressure Downwind of Rotor", figsize=(8,4.5))
     plt.plot(r_R[1:], P0_down[i][:], label="J = " + str(J[i]))
     plt.xlabel("Normalised radius, r/R")
-    plt.ylabel("Stagnation Pressure, At the Rotor(Downwind Side) [Pa]")
+    plt.ylabel("Stagnation Pressure [Pa]")
     plt.grid(True)
     plt.legend()
 
-    plt.figure("Stagnation Pressure at Rotor (Infinity Downwind)", figsize=(8,4.5))
+    plt.figure("Stagnation Pressure Infitinely Downwind of Rotor", figsize=(8,4.5))
     plt.plot(r_R[1:], P0_down[i][:], label="J = " + str(J[i]))
     plt.xlabel("Normalised radius, r/R")
-    plt.ylabel("Stagnation Pressure, At the Rotor(Infinity Downwind) [Pa]")
+    plt.ylabel("Stagnation Pressure, [Pa]")
     plt.grid(True)
     plt.legend()
 
-    plt.figure("L/D vs r/R", figsize=(8,4.5))
+    plt.figure("Aerodynamic Efficiency vs r/R", figsize=(8,4.5))
     plt.plot(r_R[1:], (Cl[i][:]/Cd[i][:]), label="J = " + str(J[i]))
     plt.xlabel("Normalised radius, r/R")
     plt.ylabel("L/D")
@@ -255,24 +225,23 @@ for i in range(len(J)):
     plt.figure("Cl vs Chord", figsize=(8,4.5))
     plt.plot(chord[i][:], Cl[i][:], label="J = " + str(J[i]))
     plt.xlabel("Chord")
-    plt.ylabel("Local Lift Coefficient")
+    plt.ylabel("Blade Element Lift Coefficient")
     plt.grid(True)
     plt.legend()
 
+    plt.figure("Stagnation Pressure Upwind of Rotor", figsize=(8,4.5))
+    plt.plot(r_R[1:], P_up[i][:], label="J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Stagnation Pressure, [Pa]")
+    plt.grid(True)
+    plt.legend()
 
-plt.figure("Stagnation Pressure at Rotor (Upwind side)", figsize=(8,4.5))
-plt.plot(r_R[1:], P_up[i][:], label="J = " + str(J[i]))
-plt.xlabel("Normalised radius, r/R")
-plt.ylabel("Stagnation Pressure, At the Rotor(Upwind side) [Pa]")
-plt.grid(True)
-plt.legend()
-
-plt.figure("Stagnation Pressure at Rotor (Infinity Upwind)", figsize=(8,4.5))
-plt.plot(r_R[1:], P_up[i][:], label="J = " + str(J[i]))
-plt.xlabel("Normalised radius, r/R")
-plt.ylabel("Stagnation Pressure, At the Rotor(Infinity Upwind) [Pa]")
-plt.grid(True)
-plt.legend()
+    plt.figure("Stagnation Pressure Infinitely Upwind of Rotor", figsize=(8,4.5))
+    plt.plot(r_R[1:], P_up[i][:], label="J = " + str(J[i]))
+    plt.xlabel("Normalised radius, r/R")
+    plt.ylabel("Stagnation Pressure, [Pa]")
+    plt.grid(True)
+    plt.legend()
 
 
 plt.figure("Thrust and Torque vs Advance Ratio", figsize = (8,4.5))
