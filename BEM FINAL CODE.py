@@ -6,9 +6,9 @@ import os
 os.chdir(os.path.dirname(__file__))
 
 #------------------------- FUNCTION DEFINITIONS -------------------------
-def PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R):
-    F_tip = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((1-(r/R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1+a)**2))))))
-    F_root = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((r/R)-(root_pos_R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1+a)**2)))))  
+def PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R, tip_pos_R):
+    F_tip = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((tip_pos_R-(r/R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1-a)**2))))))
+    F_root = (2/np.pi)*np.arccos(np.exp((-Nb/2)*(((r/R)-(root_pos_R))/(r/R))*(np.sqrt(1 + ((TSR*(r/R))**2)/((1-a)**2)))))  
     F_tot = F_tip*F_root
     
     if(F_tot == 0) or (F_tot is np.nan) or (F_tot is np.inf):
@@ -18,7 +18,7 @@ def PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R):
 
     return F_tot, F_tip, F_root
 
-def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, dr, Omega, Nb, a, b, twist, chord, polar_alfa, polar_cl, polar_cd, tol, P_up):
+def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, tip_pos_R, dr, Omega, Nb, a, b, twist, chord, polar_alfa, polar_cl, polar_cd, tol, P_up):
     flag = 0
     while True and (flag<1000):
             V_ax = Vinf*(1+a)       # axial velocity at the propeller blade
@@ -37,17 +37,16 @@ def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, dr, Omega, Nb, a, b,
             C_tan = Cl*np.sin(phi) + Cd*np.cos(phi)     # tangential force coefficient
             F_tan = (0.5*rho*V_loc**2)*C_tan*chord      # tangential force [N/m]
            
-            dCT = F_ax * Nb * dr/(rho*(n**2)*(2*R)**4)                              # blade element thrust coefficient                   
-            dCQ = ((0.5*rho*V_loc**2)*chord*C_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)    # blade element torque coefficient
-            dCP = dCQ*TSR                                                           # blade element power coefficient
-
+            dCT = (F_ax*Nb*dr)/(rho*(n**2)*(2*R)**4)        # blade element thrust coefficient                   
+            dCQ = (F_tan*Nb*r*dr)/(rho*(n**2)*(2*R)**5)     # blade element torque coefficient
+            dCP = (F_ax*Nb*dr*Vinf)/(rho*(n**3)*(2*R)**5)  # blade element power coefficient
             
             a_new = ((1/2)*(-1+np.sqrt(1+(F_ax * Nb / (rho * Vinf**2 * np.pi * r)))))
             b_new = F_tan * Nb / (2*rho*(2*np.pi*r)*Vinf*(1+a_new)*Omega*r)
             if (flag==0):
                 a_b4_Pr = a_new
             
-            F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R)
+            F_tot, F_tip, F_root = PrandtlCorrections(Nb, r, R, TSR, a, root_pos_R, tip_pos_R)
             a_new = a_new/F_tot
             b_new=b_new/F_tot
         
@@ -116,7 +115,7 @@ for j in range(len(J)):
         r = (r_R[i+1]+r_R[i])*(R/2)     # radial distance of the blade element
         dr = (r_R[i+1]-r_R[i])*R        # length of the blade element
         
-        a_b4_Pr[j][i], a[j][i], b[j][i], Cl[j][i], Cd[j][i], F_ax[j][i], F_tan[j][i], alfa[j][i], phi[j][i], F_tot[j][i], F_tip[j][i], F_root[j][i], dCT[j][i], dCQ[j][i], dCP[j][i], P0_down[j][i] = BladeElementMethod(Vinf, TSR[j], n[j], rho, R, r, root_pos_R, dr, Omega[j], Nb, a[j][i], b[j][i], twist, chord[j][i], polar_alfa, polar_cl, polar_cd, tol, P_up[j][i])
+        a_b4_Pr[j][i], a[j][i], b[j][i], Cl[j][i], Cd[j][i], F_ax[j][i], F_tan[j][i], alfa[j][i], phi[j][i], F_tot[j][i], F_tip[j][i], F_root[j][i], dCT[j][i], dCQ[j][i], dCP[j][i], P0_down[j][i] = BladeElementMethod(Vinf, TSR[j], n[j], rho, R, r, root_pos_R, tip_pos_R, dr, Omega[j], Nb, a[j][i], b[j][i], twist, chord[j][i], polar_alfa, polar_cl, polar_cd, tol, P_up[j][i])
 
         CT[j] += dCT[j][i]    # thrust coefficient for given J
         CP[j] += dCP[j][i]    # power coefficient for given J
