@@ -62,7 +62,7 @@ def BladeElementMethod(Vinf, TSR, n, rho, R, r, root_pos_R, tip_pos_R, dr, Omega
                 b = 0.75*b + 0.25*b_new
                 flag += 1
                 continue
-    P0_down = P_up + F_ax/(2*np.pi*r)
+    P0_down = P_up + F_ax*dr/(2*np.pi*r)
     return a_b4_Pr, a, b, Cl, Cd, F_ax, F_tan, alfa, phi, F_tot, F_tip, F_root, dCT, dCQ, dCP, P0_down
 
 #--------------------------------- MAIN ---------------------------------
