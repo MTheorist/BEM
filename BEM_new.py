@@ -136,7 +136,7 @@ for j in range(len(J)):
 print("CT: ", CT)
 print("CP: ", CP)
 print("CQ: ", CQ)
-
+'''
 # Plotting Routines
 
 for i in range(len(J)):
@@ -228,3 +228,4 @@ plt.grid(True)
 plt.legend()
 
 plt.show()
+'''

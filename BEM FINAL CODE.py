@@ -127,7 +127,7 @@ for j in range(len(J)):
 print("CT: ", CT)
 print("CP: ", CP)
 print("CQ: ", CQ)
-
+'''
 # Plotting Routines
 
 fs = (8,5)      # size of plots
@@ -302,3 +302,4 @@ ax.set_title("3D Blade Geometry")
 ax.view_init(elev=20, azim=45)  # Adjust viewing angle
 
 plt.show()
+'''
